@@ -30,20 +30,43 @@ public class LobbyManager : MonoBehaviour
 
     async Task Authenticate()
     {
-        AuthenticationService.Instance.SignedIn += () =>
+
+		if (AuthenticationService.Instance.IsSignedIn)
+		{
+			return;
+		}
+
+        AuthenticationService.Instance.ClearSessionToken();
+
+		AuthenticationService.Instance.SignedIn += () =>
         {
             Debug.Log("Logado como " + AuthenticationService.Instance.PlayerId);
-        };
-        await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        };        
+
+		await AuthenticationService.Instance.SignInAnonymouslyAsync();
     }
 
     async public void CreateLobby()
     {
         try
         {
+
             await Authenticate();
 
-            Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.CreateLobbyAsync("Lobby", 4);
+            CreateLobbyOptions createLobbyOptions = new CreateLobbyOptions
+            {
+                Player = new Player
+                {
+
+                    Data = new Dictionary<string, PlayerDataObject>
+                    {
+                        { "name", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerNameInput.text) }
+                    }
+
+                }
+            };
+
+			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.CreateLobbyAsync("Lobby", 4, createLobbyOptions);
 
             Debug.Log("Criou o lobby " + lobby.LobbyCode);
 
@@ -77,7 +100,20 @@ public class LobbyManager : MonoBehaviour
         {
             await Authenticate();
 
-			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCodeInput.text);
+			JoinLobbyByCodeOptions createLobbyOptions = new JoinLobbyByCodeOptions
+			{
+				Player = new Player
+				{
+
+					Data = new Dictionary<string, PlayerDataObject>
+					{
+						{ "name", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerNameInput.text) }
+					}
+
+				}
+			};
+
+			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCodeInput.text, createLobbyOptions);
 
 			Debug.Log("Entrou no lobby " + lobby.LobbyCode);
         }
