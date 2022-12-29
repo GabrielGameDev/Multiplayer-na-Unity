@@ -14,7 +14,7 @@ public class LobbyManager : MonoBehaviour
     public TMP_InputField playerNameInput;
     public TMP_InputField lobbyCodeInput;
 
-    Lobby hostLobby;
+    Lobby hostLobby, joinnedLobby;
 
     // Start is called before the first frame update
     async void Start()
@@ -71,6 +71,7 @@ public class LobbyManager : MonoBehaviour
             Debug.Log("Criou o lobby " + lobby.LobbyCode);
 
 			hostLobby = lobby;
+            joinnedLobby = hostLobby;
 
 			InvokeRepeating("LobbyHeartBeat", 15, 15);
 
@@ -92,6 +93,8 @@ public class LobbyManager : MonoBehaviour
 
         await LobbyService.Instance.SendHeartbeatPingAsync(hostLobby.Id);
         Debug.Log("Atualizou lobby");
+        UpdateLobby();
+		ShowPlayersOnLobby();
 	}
     
     async public void JoinLobby()
@@ -115,12 +118,32 @@ public class LobbyManager : MonoBehaviour
 
 			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCodeInput.text, createLobbyOptions);
 
+            joinnedLobby = lobby;
+
 			Debug.Log("Entrou no lobby " + lobby.LobbyCode);
-        }
+			ShowPlayersOnLobby();
+		}
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }
 
+    }
+
+    async void UpdateLobby()
+    {
+		if (joinnedLobby == null)
+			return;
+
+        joinnedLobby = await LobbyService.Instance.GetLobbyAsync(joinnedLobby.Id);
+        
+	}
+
+	void ShowPlayersOnLobby()
+	{
+        foreach (Player player in joinnedLobby.Players)
+        {
+			Debug.Log(player.Data["name"].Value);
+		}
     }
 }
