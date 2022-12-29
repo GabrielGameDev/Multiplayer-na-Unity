@@ -15,9 +15,12 @@ public class LobbyManager : MonoBehaviour
     public TMP_InputField lobbyCodeInput;
 
     Lobby hostLobby, joinnedLobby;
+    public GameObject lobbyIntro, lobbyPanel;
+	public TMP_Text[] lobbyPlayersText;
+	public TMP_Text lobbyCodeText;
 
-    // Start is called before the first frame update
-    async void Start()
+	// Start is called before the first frame update
+	async void Start()
     {
         await UnityServices.InitializeAsync();
     }
@@ -72,8 +75,11 @@ public class LobbyManager : MonoBehaviour
 
 			hostLobby = lobby;
             joinnedLobby = hostLobby;
-
-			InvokeRepeating("LobbyHeartBeat", 15, 15);
+            lobbyIntro.SetActive(false);
+			lobbyPanel.SetActive(true);
+			lobbyCodeText.text = lobby.LobbyCode;
+			ShowPlayersOnLobby();
+			InvokeRepeating("LobbyHeartBeat", 10, 10);
 
 		}
         catch (LobbyServiceException e)
@@ -120,6 +126,11 @@ public class LobbyManager : MonoBehaviour
 
             joinnedLobby = lobby;
 
+			lobbyIntro.SetActive(false);
+			lobbyPanel.SetActive(true);
+
+			lobbyCodeText.text = lobby.LobbyCode;
+
 			Debug.Log("Entrou no lobby " + lobby.LobbyCode);
 			ShowPlayersOnLobby();
 		}
@@ -141,9 +152,12 @@ public class LobbyManager : MonoBehaviour
 
 	void ShowPlayersOnLobby()
 	{
-        foreach (Player player in joinnedLobby.Players)
+        for (int i = 0; i < joinnedLobby.Players.Count; i++)
         {
-			Debug.Log(player.Data["name"].Value);
+			lobbyPlayersText[i].text = joinnedLobby.Players[i].Data["name"].Value;
 		}
+        
     }
+
+    
 }
