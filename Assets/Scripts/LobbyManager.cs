@@ -58,15 +58,7 @@ public class LobbyManager : MonoBehaviour
 
             CreateLobbyOptions createLobbyOptions = new CreateLobbyOptions
             {
-                Player = new Player
-                {
-
-                    Data = new Dictionary<string, PlayerDataObject>
-                    {
-                        { "name", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerNameInput.text) }
-                    }
-
-                }
+                Player = GetPlayer()
             };
 
 			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.CreateLobbyAsync("Lobby", 4, createLobbyOptions);
@@ -109,17 +101,9 @@ public class LobbyManager : MonoBehaviour
         {
             await Authenticate();
 
-			JoinLobbyByCodeOptions createLobbyOptions = new JoinLobbyByCodeOptions
-			{
-				Player = new Player
-				{
-
-					Data = new Dictionary<string, PlayerDataObject>
-					{
-						{ "name", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerNameInput.text) }
-					}
-
-				}
+            JoinLobbyByCodeOptions createLobbyOptions = new JoinLobbyByCodeOptions
+            {
+                Player = GetPlayer()
 			};
 
 			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCodeInput.text, createLobbyOptions);
@@ -139,6 +123,19 @@ public class LobbyManager : MonoBehaviour
             Debug.Log(e);
         }
 
+    }
+
+    Player GetPlayer()
+    {
+        Player player = new Player
+        {
+            Data = new Dictionary<string, PlayerDataObject>
+                    {
+                        { "name", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerNameInput.text) }
+                    }
+        };
+
+        return player;
     }
 
     async void UpdateLobby()
