@@ -19,7 +19,7 @@ public class LobbyManager : MonoBehaviour
     public TMP_InputField playerNameInput;
     public TMP_InputField lobbyCodeInput;
 
-    Lobby hostLobby, joinnedLobby;
+    public Lobby hostLobby, joinnedLobby;
     public GameObject lobbyIntro, lobbyPanel;
 	public TMP_Text[] lobbyPlayersText;
 	public TMP_Text lobbyCodeText;
@@ -84,7 +84,7 @@ public class LobbyManager : MonoBehaviour
 			lobbyPanel.SetActive(true);
 			lobbyCodeText.text = lobby.LobbyCode;
 			ShowPlayersOnLobby();
-			InvokeRepeating("LobbyHeartBeat", 10, 10);
+			InvokeRepeating("LobbyHeartBeat", 5, 5);
             startGameButton.SetActive(true);
 		}
         catch (LobbyServiceException e)
@@ -204,6 +204,7 @@ public class LobbyManager : MonoBehaviour
 
         NetworkManager.Singleton.StartHost();
 
+
         return joinCode;
     }
 
@@ -219,7 +220,12 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Singleton.StartClient();
 
         lobbyPanel.SetActive(false);
+
+       
+        
     }
+
+    
 
     public async void StartGame()
     {
