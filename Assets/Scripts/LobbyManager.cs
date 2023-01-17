@@ -7,6 +7,11 @@ using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using System.Threading.Tasks;
+using Unity.Services.Relay.Models;
+using Unity.Services.Relay;
+using Unity.Networking.Transport.Relay;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -18,6 +23,10 @@ public class LobbyManager : MonoBehaviour
     public GameObject lobbyIntro, lobbyPanel;
 	public TMP_Text[] lobbyPlayersText;
 	public TMP_Text lobbyCodeText;
+
+    public GameObject startGameButton;
+
+    bool startedGame;
 
 	// Start is called before the first frame update
 	async void Start()
@@ -58,7 +67,11 @@ public class LobbyManager : MonoBehaviour
 
             CreateLobbyOptions createLobbyOptions = new CreateLobbyOptions
             {
-                Player = GetPlayer()
+                Player = GetPlayer(),
+                Data = new Dictionary<string, DataObject>
+                {
+                    {"StartGame", new DataObject(DataObject.VisibilityOptions.Member, "0") }
+                }
             };
 
 			Lobby lobby = await Unity.Services.Lobbies.LobbyService.Instance.CreateLobbyAsync("Lobby", 4, createLobbyOptions);
@@ -72,7 +85,7 @@ public class LobbyManager : MonoBehaviour
 			lobbyCodeText.text = lobby.LobbyCode;
 			ShowPlayersOnLobby();
 			InvokeRepeating("LobbyHeartBeat", 10, 10);
-
+            startGameButton.SetActive(true);
 		}
         catch (LobbyServiceException e)
         {
@@ -83,6 +96,26 @@ public class LobbyManager : MonoBehaviour
     }
       
 
+    void CheckForLobbyUpdates()
+    {
+        if(joinnedLobby == null || startedGame)
+        {
+            return;
+        }
+        
+        UpdateLobby();
+        ShowPlayersOnLobby();
+        if (joinnedLobby.Data["StartGame"].Value != "0")
+        {
+            if(hostLobby == null)
+            {
+                JoinRelay(joinnedLobby.Data["StartGame"].Value);
+            }
+
+            startedGame = true;
+        }
+
+    }
 
     async void LobbyHeartBeat()
     {
@@ -116,7 +149,9 @@ public class LobbyManager : MonoBehaviour
 			lobbyCodeText.text = lobby.LobbyCode;
 
 			Debug.Log("Entrou no lobby " + lobby.LobbyCode);
+
 			ShowPlayersOnLobby();
+            InvokeRepeating("CheckForLobbyUpdates", 3, 3);
 		}
         catch (LobbyServiceException e)
         {
@@ -156,5 +191,52 @@ public class LobbyManager : MonoBehaviour
         
     }
 
+
+    async Task<string> CreateRelay()
+    {
+        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(4);
+
+        string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+        RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+
+        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+
+        NetworkManager.Singleton.StartHost();
+
+        return joinCode;
+    }
+
+    async void JoinRelay(string joinCode)
+    {
+        Debug.Log("Criando relay");
+        JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+
+        RelayServerData relayServerData = new RelayServerData(joinAllocation, "dtls");
+
+        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+
+        NetworkManager.Singleton.StartClient();
+
+        lobbyPanel.SetActive(false);
+    }
+
+    public async void StartGame()
+    {
+        string relayCode = await CreateRelay();
+
+        Lobby lobby = await Lobbies.Instance.UpdateLobbyAsync(joinnedLobby.Id, new UpdateLobbyOptions
+        {
+            Data = new Dictionary<string, DataObject>
+            {
+                {"StartGame", new DataObject(DataObject.VisibilityOptions.Member, relayCode) }
+            }
+        });
+
+        joinnedLobby = lobby;
+
+        lobbyPanel.SetActive(false);
+
+    }
     
 }
